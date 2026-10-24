@@ -5,7 +5,7 @@ const crypto = require('node:crypto');
 const { utils } = require('ssh2');
 const c = require('./lib/common');
 const policy = require('./lib/authorization');
-const { copyTargetDependencies } = require('./lib/target-runtime');
+const { copyDirectory, copyTargetDependencies } = require('./lib/target-runtime');
 
 function makeKey(file) {
   let pair;
@@ -82,17 +82,17 @@ function newSession(options) {
     const source = path.resolve(options.openssh);
     const manifest = path.join(source, 'manifest.json');
     if (!fs.existsSync(manifest) || !fs.existsSync(path.join(source, 'sshd.exe'))) throw new Error('Portable SSH directory must include its manifest and daemon');
-    fs.cpSync(source, path.join(bundle, 'openssh'), { recursive: true });
+    copyDirectory(source, path.join(bundle, 'openssh'));
     config.portableSshManifestSha256 = crypto.createHash('sha256').update(fs.readFileSync(manifest)).digest('hex');
   }
   c.writeJson(path.join(dir, 'session.json'), config);
-  fs.cpSync(path.join(__dirname, 'target', 'capabilities'), path.join(bundle, 'capabilities'), { recursive: true });
+  copyDirectory(path.join(__dirname, 'target', 'capabilities'), path.join(bundle, 'capabilities'));
   fs.mkdirSync(path.join(bundle, 'target')); fs.copyFileSync(path.join(__dirname, 'target', 'tunnel.js'), path.join(bundle, 'target', 'tunnel.js'));
   fs.mkdirSync(path.join(bundle, 'lib'));
   fs.copyFileSync(path.join(__dirname, 'lib', 'common.js'), path.join(bundle, 'lib', 'common.js'));
   fs.copyFileSync(path.join(__dirname, 'lib', 'stream-pair.js'), path.join(bundle, 'lib', 'stream-pair.js'));
   copyTargetDependencies(__dirname, path.join(bundle, 'node_modules'));
-  fs.cpSync(path.join(__dirname, 'licenses'), path.join(bundle, 'licenses'), { recursive: true });
+  copyDirectory(path.join(__dirname, 'licenses'), path.join(bundle, 'licenses'));
   fs.copyFileSync(path.join(__dirname, 'LICENSE'), path.join(bundle, 'LICENSE'));
   fs.mkdirSync(path.join(bundle, 'runtime'));
   fs.copyFileSync(node, path.join(bundle, 'runtime', 'node.exe'));

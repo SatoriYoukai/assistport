@@ -6,9 +6,21 @@ const path = require('node:path');
 const { newSession } = require('../new-session');
 const { readJson } = require('../lib/common');
 const { authorization, operatorLabel } = require('../lib/authorization');
+const { copyDirectory } = require('../lib/target-runtime');
 const { spawnSync } = require('node:child_process');
 const root = fs.mkdtempSync(path.join(os.tmpdir(), "support-package-test-中文'-"));
 try {
+  const copySource = path.join(root, '复制源'), copyDestination = path.join(root, "复制目标'");
+  fs.mkdirSync(path.join(copySource, '嵌套目录'), { recursive: true });
+  fs.mkdirSync(path.join(copySource, '空目录'));
+  const copyBytes = Buffer.from([0, 1, 128, 255]);
+  fs.writeFileSync(path.join(copySource, '嵌套目录', "文件'.bin"), copyBytes);
+  copyDirectory(copySource, copyDestination);
+  assert.deepEqual(fs.readFileSync(path.join(copyDestination, '嵌套目录', "文件'.bin")), copyBytes);
+  assert.deepEqual(fs.readdirSync(copyDestination).sort(), ['嵌套目录', '空目录'].sort());
+  assert.deepEqual(fs.readdirSync(path.join(copyDestination, '空目录')), []);
+  assert.deepEqual(fs.readdirSync(root).sort(), [path.basename(copySource), path.basename(copyDestination)].sort());
+  assert.throws(() => copyDirectory(copySource, path.join(copySource, 'inside')), /inside itself/);
   assert.deepEqual(authorization().capabilities, ['command', 'files', 'screenshot', 'desktop']);
   assert.equal(authorization().enforcement, 'declared');
   assert.throws(() => authorization('restricted'), /Only the full/);
@@ -30,7 +42,7 @@ try {
   assert.equal(load.status, 0, load.stderr);
   // Exercise the same PowerShell packaging entrypoint used for handoff. It
   // expands the FINAL ZIP and runs Bootstrap -CheckOnly in Windows PowerShell 5.
-  const packaged = spawnSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', path.join(__dirname, '../New-SupportPackage.ps1'), '-StateDirectory', path.join(root, 'private'), '-OutputDirectory', path.join(root, '交付包'), '-Endpoint', 'https://localhost', '-ReversePort', '23023', '-OperatorLabel', label], { encoding: 'utf8', windowsHide: true, timeout: 120000 });
+  const packaged = spawnSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', path.join(__dirname, '../New-SupportPackage.ps1'), '-StateDirectory', path.join(root, 'private'), '-OutputDirectory', path.join(root, '交付包'), '-Endpoint', 'https://localhost', '-ReversePort', '23023', '-OperatorLabel', label, '-NodePath', process.execPath], { encoding: 'utf8', windowsHide: true, timeout: 120000 });
   assert.equal(packaged.status, 0, packaged.stderr);
   const handoff = JSON.parse(packaged.stdout.replace(/^\uFEFF/, ''));
   assert.equal(handoff.PackageValidation, 'final-zip-windows-powershell-5.1-checkonly');

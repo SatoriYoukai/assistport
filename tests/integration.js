@@ -26,6 +26,21 @@ async function freePort() {
 async function refused(port) {
   return new Promise((resolve) => { const s = net.connect(port, '127.0.0.1'); s.on('connect', () => { s.destroy(); resolve(false); }); s.on('error', () => resolve(true)); });
 }
+function fixturePath(filesRoot, name) {
+  const root = fs.realpathSync.native(filesRoot);
+  const requested = path.resolve(root, name);
+  let resolved;
+  try { resolved = fs.realpathSync.native(requested); }
+  catch (error) {
+    if (error.code !== 'ENOENT') throw error;
+    // OPEN may create command.ps1, but PowerShell already created its parent.
+    // Resolve that existing parent to expand Windows 8.3 aliases and junctions.
+    resolved = path.join(fs.realpathSync.native(path.dirname(requested)), path.basename(requested));
+  }
+  const relative = path.relative(root, resolved);
+  if (!relative || relative === '..' || relative.startsWith('..' + path.sep) || path.isAbsolute(relative)) throw new Error('Path outside fixture');
+  return resolved;
+}
 async function fakeTarget(hostKey, publicKey, filesRoot) {
   const clients = new Set(); const allowed = c.key(publicKey);
   const server = new Server({ hostKeys: [fs.readFileSync(hostKey)] }, (client) => {
@@ -47,11 +62,7 @@ async function fakeTarget(hostKey, publicKey, filesRoot) {
       });
       session.on('sftp', (accept) => {
         const sftp = accept(); const handles = new Map(); let next = 0;
-        const file = (name) => {
-          const resolved = path.resolve(filesRoot, name);
-          if (!resolved.startsWith(path.resolve(filesRoot) + path.sep)) throw new Error('Path');
-          return resolved;
-        };
+        const file = (name) => fixturePath(filesRoot, name);
         const ok = 0, failure = 4, eof = 1;
         const attrs = (p) => { const s = fs.statSync(p); return { mode: s.mode, uid: 0, gid: 0, size: s.size, atime: Math.floor(s.atimeMs / 1000), mtime: Math.floor(s.mtimeMs / 1000) }; };
         sftp.on('OPEN', (req, name, flags) => { try { const mode = flags & 2 ? (flags & 32 ? 'wx' : 'w+') : 'r'; const fd = fs.openSync(file(name), mode); const h = Buffer.from(String(++next)); handles.set(h.toString(), fd); sftp.handle(req, h); } catch { sftp.status(req, failure); } });
@@ -71,6 +82,9 @@ async function fakeTarget(hostKey, publicKey, filesRoot) {
 }
 async function run() {
   const scratch = fs.mkdtempSync(path.join(os.tmpdir(), "temporary-support-test-中文'-"));
+  assert.equal(fixturePath(scratch, 'fixture-new-file'), path.join(fs.realpathSync.native(scratch), 'fixture-new-file'));
+  assert.throws(() => fixturePath(scratch, '..'), /outside fixture/);
+  assert.throws(() => fixturePath(scratch, path.join(scratch + '-other', 'escape')), /ENOENT|outside fixture/);
   const root = process.env.SUPPORT_EXTERNAL_STATE ? path.resolve(process.env.SUPPORT_EXTERNAL_STATE) : scratch;
   initState(root);
   const id = crypto.randomBytes(8).toString('hex');
