@@ -6,7 +6,7 @@ const path = require('node:path');
 const net = require('node:net');
 const crypto = require('node:crypto');
 const { spawn } = require('node:child_process');
-const { Server, Client, utils } = require('ssh2');
+const { Server, Client } = require('ssh2');
 const { WebSocket } = require('ws');
 const { startReceiver } = require('../receiver');
 const { connectTunnel } = require('../target/tunnel');
@@ -196,10 +196,12 @@ async function run() {
     await new Promise((resolve, reject) => link.client.exec('whoami', (error) => error ? resolve() : reject(new Error('Controller shell was accepted'))));
     console.log('PASS controller command execution denied');
     const receipt = c.readJson(path.join(dir, 'receipt.json'));
-    const other = utils.generateKeyPairSync('ed25519'); c.writeJson(path.join(dir, 'receipt.json'), { ...receipt, hostKey: other.public });
-    await assert.rejects(operate({ session: dir, action: 'exec', command: 'whoami' }), /verification|host/i);
+    const otherPublic = makeKey(path.join(scratch, 'different-fixture-host-key'));
+    assert.notDeepEqual(c.key(otherPublic).getPublicSSH(), c.key(receipt.hostKey).getPublicSSH());
+    c.writeJson(path.join(dir, 'receipt.json'), { ...receipt, hostKey: otherPublic });
+    await assert.rejects(operate({ session: dir, action: 'exec', command: 'whoami' }), (error) => error.code === 'IDENTITY_MISMATCH' && /pinned identity/i.test(error.message));
     c.writeJson(path.join(dir, 'receipt.json'), receipt); console.log('PASS target host-key mismatch denied');
-    const wrong = { ...config, receiverHostKey: other.public };
+    const wrong = { ...config, receiverHostKey: otherPublic };
     // Receiver only permits one forward at a time; host verification fails before that point.
     await assert.rejects(connectTunnel(wrong, dir), /verification|host/i); console.log('PASS receiver host-key mismatch denied');
     const closed = link.done;
