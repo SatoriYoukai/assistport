@@ -20,7 +20,7 @@ try {
   const target = readJson(path.join(result.targetDirectory, 'session.json'));
   assert.deepEqual(target.authorization, controller.authorization);
   assert.equal(target.operatorLabel, label);
-  for (const file of ['Show-SessionInfo.ps1', 'Read-SupportLog.ps1', 'Read-SupportJson.ps1', 'Manage-Capability.ps1', 'Capability.Core.ps1', 'capabilities/screenshot/Capture.ps1', 'capabilities/screenshot/Run.vbs', 'lib/stream-pair.js', 'LICENSE', 'START.cmd']) assert.ok(fs.existsSync(path.join(result.targetDirectory, file)));
+  for (const file of ['Show-SessionInfo.ps1', 'Read-SupportLog.ps1', 'Read-SupportJson.ps1', 'Manage-Capability.ps1', 'Capability.Core.ps1', 'capabilities/screenshot/Capture.ps1', 'capabilities/screenshot/Run.vbs', 'lib/stream-pair.js', 'LICENSE', 'START.cmd']) assert.ok(fs.existsSync(path.join(result.targetDirectory, file)), `Missing target bundle file: ${file}`);
   // Controller execution credentials must never be sent in the target package.
   assert.equal(fs.existsSync(path.join(result.targetDirectory, 'control_key')), false);
   assert.equal(fs.existsSync(path.join(result.targetDirectory, 'receiver_host_key')), false);
