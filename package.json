@@ -1,0 +1,27 @@
+{
+  "name": "assistport",
+  "version": "0.1.0",
+  "private": true,
+  "license": "MIT",
+  "description": "Temporary, user-authorized Windows access for humans and agents over outbound SSH/WSS",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SatoriYoukai/assistport.git"
+  },
+  "homepage": "https://github.com/SatoriYoukai/assistport#readme",
+  "bugs": {
+    "url": "https://github.com/SatoriYoukai/assistport/issues"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.32.1",
+    "ssh2": "1.17.0",
+    "ws": "8.22.0",
+    "zod": "4.6.7"
+  },
+  "scripts": {
+    "test": "node tests/package.js && node tests/tool-registry.js && node tests/capability-client.js && node tests/operation.js && node tests/mcp.js && node tests/tunnel-lifecycle.js && node tests/integration.js && powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File tests/encoding.ps1 && powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File tests/log-reader.ps1 && powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File tests/capture-backend.ps1 && powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File tests/capabilities.ps1"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

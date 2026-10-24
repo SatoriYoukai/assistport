@@ -1,0 +1,14 @@
+{
+  "id": "reviewed-helper",
+  "version": "REPLACE_WITH_PINNED_VERSION",
+  "source": {
+    "url": "https://example.org/releases/REPLACE_WITH_OFFICIAL_ARTIFACT.zip",
+    "sha256": "REPLACE_WITH_VERIFIED_SHA256"
+  },
+  "capabilities": ["command"],
+  "review": {
+    "by": "REPLACE_WITH_REVIEWER",
+    "evidence": "REPLACE_WITH_ACTUAL_SOURCE_OR_PUBLISHER_REVIEW"
+  },
+  "cleanup": "REPLACE_WITH_OWNED_RESOURCE_STOP_AND_CLEANUP_PROCEDURE"
+}

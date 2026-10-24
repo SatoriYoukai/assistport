@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "assistport": {
+      "command": "C:\\path\\to\\node.exe",
+      "args": [
+        "C:\\path\\to\\assistport\\mcp-server.js",
+        "--session",
+        "C:\\support-private\\sessions\\SESSION_ID"
+      ]
+    }
+  }
+}

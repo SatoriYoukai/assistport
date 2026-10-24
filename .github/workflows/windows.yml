@@ -1,0 +1,29 @@
+name: Windows checks
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: windows-latest
+    timeout-minutes: 10
+    strategy:
+      matrix:
+        node: [22, 24]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npm test
+      - name: Parse PowerShell sources
+        shell: pwsh
+        run: |
+          $failures = @()
+          Get-ChildItem -Path target,tests -Filter *.ps1 -Recurse | ForEach-Object {
+            $tokens=$null; $errors=$null
+            [System.Management.Automation.Language.Parser]::ParseFile($_.FullName,[ref]$tokens,[ref]$errors) | Out-Null
+            $failures += @($errors)
+          }
+          if ($failures.Count) { throw ($failures | Out-String) }
